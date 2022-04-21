@@ -1,3 +1,4 @@
 flask
 requests
 ics
+pycryptodome
