@@ -31,17 +31,18 @@ If your Webcal ics client support basicAuth, like ICSx⁵ (https://f-droid.org/f
 
 ### With a token
 
-If your client does not support basicAuth, you can start Moffics with a secret key (32 random chars)
+If your client does not support basicAuth
+- Start Moffics with a secret key (32 random chars)
 ```bash
 python3 moffics.py -s <my 32 chars secret key>
 ```
-Now, uses standard web client to request a token, using basicAuth
+- Uses standard web client to request a token, using basicAuth
 ```bash
 curl -u <moffi username> http://127.0.0.1:8888/getToken
 
 {"token":"<my token>"}
 ```
 
-You can now add your calendar to your Webcal app with url `http://127.0.0.1:8888/token/<my token>`
+- Add your calendar to your Webcal app with url `http://127.0.0.1:8888/token/<my token>`
 
 Enjoy
