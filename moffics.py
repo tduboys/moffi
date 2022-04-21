@@ -162,6 +162,8 @@ if __name__ == "__main__":
 
     PARSER = argparse.ArgumentParser()
     PARSER.add_argument("--verbose", "-v", action="store_true", help="More verbose")
+    PARSER.add_argument("--listen", "-l", help="Listen address\t(default to 0.0.0.0)", default="0.0.0.0")
+    PARSER.add_argument("--port", "-p", help="Listen port\t(default to 8888)", default="8888")
     ARGS = PARSER.parse_args()
 
-    APP.run(host="0.0.0.0", port="8888", debug=ARGS.verbose)
+    APP.run(host=ARGS.listen, port=ARGS.port, debug=ARGS.verbose)

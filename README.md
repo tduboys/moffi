@@ -15,10 +15,9 @@ pip install -r requirements.txt
 ## Run
 
 ```bash
-python3 moffics.py -v
+python3 moffics.py -h
+python3 moffics.py -l 0.0.0.0 -p 8888 -v
 ```
-
-It listen to 8888 port
 
 You should considerate use https reverse proxy like Caddy (https://caddyserver.com/)
 
