@@ -195,7 +195,7 @@ def get_with_basicauth():
     """
     auth = request.authorization
     if not auth:
-        abort(403, "missing basicauth")
+        abort(401, "missing authentication")
     APP.logger.debug(f"Login : {auth.username}")
 
     user_profile = signin(username=auth.username, password=auth.password)
@@ -213,7 +213,7 @@ def get_token():
 
     auth = request.authorization
     if not auth:
-        abort(403, "missing basicauth")
+        abort(401, "missing authentication")
     APP.logger.debug(f"Login : {auth.username}")
 
     # ensure auth is legitimate
