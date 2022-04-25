@@ -1,5 +1,7 @@
+#!/usr/bin/env python3
+
 """
-Main
+Moffi Auto-reservation main program
 """
 import argparse
 import logging
