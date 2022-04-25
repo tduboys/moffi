@@ -53,7 +53,7 @@ def query(  # pylint: disable=too-many-arguments
     method = requests.__dict__[method.lower()]
 
     try:
-        result = method(url=url, headers=ciheaders, data=data)
+        result = method(url=url, headers=ciheaders, json=data)
     except requests.exceptions.RequestException as ex:
         raise RequestException from ex
 

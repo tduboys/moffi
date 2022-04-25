@@ -5,23 +5,27 @@ Moffi auto reservation functions
 import logging
 from datetime import datetime, timedelta
 
+from moffi_sdk.exceptions import OrderException
+from moffi_sdk.order import order_desk
 from moffi_sdk.reservations import get_reservations_by_date
 from moffi_sdk.spaces import BUILDING_TIMEZONE, get_desk_for_date, get_workspace_details
 
 MAX_DAYS = 30
 
 
-def auto_reservation(desk: str, city: str, workspace: str, auth_token: str):
+def auto_reservation(  # pylint: disable=too-many-locals,too-many-branches
+    desk: str, city: str, workspace: str, auth_token: str
+):
     """Auto reservation loop"""
 
     workspace_details = get_workspace_details(city=city, workspace=workspace, auth_token=auth_token)
 
     reservations = get_reservations_by_date(auth_token=auth_token)
 
-    workspace_reservation_range_min = datetime.now(BUILDING_TIMEZONE) + timedelta(
+    workspace_reservation_range_min = datetime.now(BUILDING_TIMEZONE.get("tz")) + timedelta(
         minutes=workspace_details.get("plageMini", {}).get("minutes", 0)
     )
-    workspace_reservation_range_max = datetime.now(BUILDING_TIMEZONE) + timedelta(
+    workspace_reservation_range_max = datetime.now(BUILDING_TIMEZONE.get("tz")) + timedelta(
         minutes=workspace_details.get("plageMaxi", {}).get("minutes", 0)
     )
     # set max range at end of day
@@ -39,7 +43,7 @@ def auto_reservation(desk: str, city: str, workspace: str, auth_token: str):
         logging.debug(f"Workspace closed days are {', '.join(workspace_closed_days)}")
 
     for delay in range(1, MAX_DAYS):
-        future_date = datetime.now(BUILDING_TIMEZONE) + timedelta(days=delay)
+        future_date = datetime.now(BUILDING_TIMEZONE.get("tz")) + timedelta(days=delay)
         if len(reservations.get(future_date.date(), [])) > 0:
             logging.info(f"User already have a reservation for date {future_date.date().isoformat()}")
             for resa in reservations.get(future_date.date(), []):
@@ -63,8 +67,24 @@ def auto_reservation(desk: str, city: str, workspace: str, auth_token: str):
                 desk_name=desk,
                 building_id=workspace_details.get("building", {}).get("id"),
                 workspace_id=workspace_details.get("id"),
-                target_date=future_date,
+                target_date=future_date.date(),
                 auth_token=auth_token,
                 floor=workspace_details.get("floor", {}).get("level"),
             )
-            logging.debug(desk_details)
+
+            if desk_details.get("status") != "AVAILABLE":
+                logging.warning(f"Desk {desk} is not available for reservation")
+                continue
+
+            logging.info(f"Order desk {desk} for date {future_date.date().isoformat()}")
+            try:
+                order_desk(
+                    order_date=future_date.date(),
+                    workspace_details=workspace_details,
+                    desk_details=desk_details,
+                    auth_token=auth_token,
+                )
+                logging.info("Order successful")
+            except OrderException as ex:
+                logging.warning(f"Unable to order desk : {repr(ex)}")
+                continue

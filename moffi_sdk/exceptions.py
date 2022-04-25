@@ -17,3 +17,11 @@ class RequestException(MoffiSdkException):
 
 class ItemNotFoundException(MoffiSdkException):
     """Item not found in Moffi API"""
+
+
+class OrderException(MoffiSdkException):
+    """Error during order in Moffi API"""
+
+
+class UnavailableException(OrderException):
+    """Item is unavailable in Moffi API"""

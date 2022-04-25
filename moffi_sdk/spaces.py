@@ -13,7 +13,7 @@ from rfc3339 import rfc3339
 from moffi_sdk.exceptions import ItemNotFoundException
 from moffi_sdk.utils import query
 
-BUILDING_TIMEZONE = pytz.timezone("UTC")
+BUILDING_TIMEZONE = {"tz": pytz.timezone("UTC")}
 
 
 def get_building(name: str, auth_token: str) -> Dict[str, Any]:
@@ -33,9 +33,7 @@ def get_building(name: str, auth_token: str) -> Dict[str, Any]:
         raise ItemNotFoundException(f"City {name} not found")
 
     building_details = query(method="GET", url=f"/buildings/{city.get('id')}", auth_token=auth_token)
-    BUILDING_TIMEZONE = pytz.timezone(  # pylint: disable=redefined-outer-name,invalid-name,unused-variable
-        building_details.get("timezone", "UTC")
-    )
+    BUILDING_TIMEZONE["tz"] = pytz.timezone(building_details.get("timezone", "UTC"))
 
     return building_details
 
@@ -51,7 +49,7 @@ def get_workspace_availabilities(
     # iterate on floors to find workspace
     workspace_details = None
     if target_date is None:
-        target_date = rfc3339(datetime.now(BUILDING_TIMEZONE) + timedelta(days=1))
+        target_date = rfc3339(datetime.now(BUILDING_TIMEZONE.get("tz")) + timedelta(days=1))
 
     for floor in building_details.get("floors", []):
         params = {
@@ -114,7 +112,9 @@ def get_desk_for_date(  # pylint: disable=too-many-arguments
         raise ItemNotFoundException(f"Workspace id {workspace_id} not found on building {building_id}")
     workspace_details = workspace_details_list[0]
 
-    return get_desk_details_from_workspace(name=desk_name, workspace_details=workspace_details)
+    desk_details = get_desk_details_from_workspace(name=desk_name, workspace_details=workspace_details)
+
+    return desk_details
 
 
 def get_workspace_details(city: str, workspace: str, auth_token: str) -> Dict[str, Any]:

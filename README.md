@@ -52,4 +52,9 @@ Enjoy
 
 ## Auto-Reservation
 
-WIP
+To order the same desk every possible days, up to 30 days
+
+```bash
+python auto_reservation.py -u <moffi username> -p <moffi password> -c <City where to book> -w <Workspace name> -d <Desk full name>
+```
+See Moffi web interface to find City, Workspace and Desk names
