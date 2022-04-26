@@ -7,12 +7,12 @@ from typing import Any, Dict
 
 from rfc3339 import rfc3339
 
-from moffi_sdk.exceptions import OrderException, UnavailableException
-from moffi_sdk.spaces import BUILDING_TIMEZONE
+from moffi_sdk.exceptions import OrderException, RequestException, UnavailableException
+from moffi_sdk.spaces import BUILDING_TIMEZONE, get_desk_for_date, get_workspace_details
 from moffi_sdk.utils import query
 
 
-def order_desk(  # pylint: disable=too-many-locals
+def order_desk_from_details(  # pylint: disable=too-many-locals
     order_date: date, workspace_details: Dict[str, Any], desk_details: Dict[str, Any], auth_token: str
 ) -> Dict[str, Any]:
     """
@@ -39,7 +39,7 @@ def order_desk(  # pylint: disable=too-many-locals
     day_name = order_date.strftime("%A").lower()
     schedule = workspace_details.get("schedule", {})
     if schedule.get(day_name) is None or not schedule.get(day_name, {}).get("isOpen", False):
-        raise UnavailableException(f"Date {date.isoformat()} is not opened for reservation for this workspace")
+        raise UnavailableException(f"Date {order_date.isoformat()} is not opened for reservation for this workspace")
 
     # compute starting date and ending date
     open_time_str = schedule.get(day_name, {}).get("beginningMorning", "00:00")
@@ -92,9 +92,7 @@ def order_desk(  # pylint: disable=too-many-locals
         "bookings": [
             {
                 "id": None,
-                "workspace": {
-                    "id": workspace_details.get("id"),
-                },
+                "workspace": {"id": workspace_details.get("id"),},
                 "workspaceId": workspace_details.get("id"),
                 "start": rfc3339(start_date, utc=True),
                 "end": rfc3339(start_date, utc=True),
@@ -138,3 +136,44 @@ def order_desk(  # pylint: disable=too-many-locals
         OrderException(f"Paid order is not on status PAID : {paid_order.get('status')}")
 
     return paid_order
+
+
+def order_desk(city: str, workspace: str, desk: str, order_date: str, auth_token: str) -> Dict[str, Any]:
+    """
+    Order a desk from basic details
+
+    :param city: City where Workspace is located
+    :param workspace: Workspace where order a desk
+    :param desk: Desk fullname to order
+    :param order_date: date in isoformat to book
+    :param auth
+    :return: Completed order
+    :raise: OrderException in case of error
+    """
+    try:
+        target_date = date.fromisoformat(order_date)
+    except ValueError as ex:
+        raise OrderException from ex
+
+    try:
+        workspace_details = get_workspace_details(city=city, workspace=workspace, auth_token=auth_token)
+        desk_details = get_desk_for_date(
+            desk_name=desk,
+            building_id=workspace_details.get("building", {}).get("id"),
+            workspace_id=workspace_details.get("id"),
+            target_date=target_date,
+            auth_token=auth_token,
+            floor=workspace_details.get("floor", {}).get("level"),
+        )
+    except RequestException as ex:
+        raise OrderException from ex
+
+    if desk_details.get("status") != "AVAILABLE":
+        raise OrderException(f"Desk {desk} is not available for reservation")
+
+    logging.info(f"Order desk {desk} for date {order_date}")
+    order_details = order_desk_from_details(
+        order_date=target_date, workspace_details=workspace_details, desk_details=desk_details, auth_token=auth_token,
+    )
+    logging.info("Order successful")
+    return order_details
