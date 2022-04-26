@@ -60,7 +60,12 @@ def get_workspace_availabilities(
             "period": "DAY",
             "floor": floor.get("level"),
         }
-        floor_details = query(method="get", url="/workspaces/availabilities", params=params, auth_token=auth_token,)
+        floor_details = query(
+            method="get",
+            url="/workspaces/availabilities",
+            params=params,
+            auth_token=auth_token,
+        )
         for workspace in floor_details:
             if workspace.get("workspace", {}).get("title", "") == name:
                 workspace_details = workspace
