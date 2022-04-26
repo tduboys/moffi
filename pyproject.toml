@@ -1,2 +1,8 @@
 [tool.black]
 line-length = 120
+
+[tool.pylint.'MESSAGES CONTROL']
+max-line-length = 120
+
+[tool.pylint.LOGGING]
+disable = [ "logging-fstring-interpolation" ]

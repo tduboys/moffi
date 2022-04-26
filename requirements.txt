@@ -2,3 +2,6 @@ flask
 requests
 ics
 pycryptodome
+python-dateutil
+pytz
+rfc3339
