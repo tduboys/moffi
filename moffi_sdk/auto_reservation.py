@@ -4,6 +4,7 @@ Moffi auto reservation functions
 
 import logging
 from datetime import datetime, timedelta
+from typing import List, Optional
 
 from moffi_sdk.exceptions import OrderException
 from moffi_sdk.order import order_desk_from_details
@@ -13,10 +14,27 @@ from moffi_sdk.spaces import BUILDING_TIMEZONE, get_desk_for_date, get_workspace
 MAX_DAYS = 30
 
 
-def auto_reservation(  # pylint: disable=too-many-locals,too-many-branches
-    desk: str, city: str, workspace: str, auth_token: str
+def auto_reservation(  # pylint: disable=too-many-locals,too-many-branches,too-many-statements
+    desk: str, city: str, workspace: str, auth_token: str, work_days: Optional[List[int | str] | str] = None
 ):
     """Auto reservation loop"""
+
+    if work_days is None:
+        work_days = range(1, 7)
+    if isinstance(work_days, str):
+        # test multiple separators
+        if "," in work_days:
+            work_days = work_days.split(",")
+        elif " " in work_days:
+            work_days = work_days.split()
+        else:
+            logging.warning(f"Unable to parse working days {work_days}, use all days")
+            work_days = range(1, 7)
+    try:
+        work_days = [int(i) for i in work_days]
+    except ValueError:
+        logging.warning(f"Unable to parse working days {work_days}, use all days")
+        work_days = range(1, 7)
 
     workspace_details = get_workspace_details(city=city, workspace=workspace, auth_token=auth_token)
 
@@ -71,6 +89,9 @@ def auto_reservation(  # pylint: disable=too-many-locals,too-many-branches
                 auth_token=auth_token,
                 floor=workspace_details.get("floor", {}).get("level"),
             )
+
+            if int(future_date.strftime("%u")) not in work_days:
+                logging.info(f"{future_date.strftime('%A')} is not on config working days")
 
             if desk_details.get("status") != "AVAILABLE":
                 logging.warning(f"Desk {desk} is not available for reservation")
