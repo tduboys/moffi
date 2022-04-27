@@ -92,9 +92,7 @@ def order_desk_from_details(  # pylint: disable=too-many-locals
         "bookings": [
             {
                 "id": None,
-                "workspace": {
-                    "id": workspace_details.get("id"),
-                },
+                "workspace": {"id": workspace_details.get("id"),},
                 "workspaceId": workspace_details.get("id"),
                 "start": rfc3339(start_date, utc=True),
                 "end": rfc3339(start_date, utc=True),
@@ -175,10 +173,7 @@ def order_desk(city: str, workspace: str, desk: str, order_date: str, auth_token
 
     logging.info(f"Order desk {desk} for date {order_date}")
     order_details = order_desk_from_details(
-        order_date=target_date,
-        workspace_details=workspace_details,
-        desk_details=desk_details,
-        auth_token=auth_token,
+        order_date=target_date, workspace_details=workspace_details, desk_details=desk_details, auth_token=auth_token,
     )
     logging.info("Order successful")
     return order_details
