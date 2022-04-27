@@ -6,7 +6,7 @@ import logging
 from datetime import datetime, timedelta
 
 from moffi_sdk.exceptions import OrderException
-from moffi_sdk.order import order_desk
+from moffi_sdk.order import order_desk_from_details
 from moffi_sdk.reservations import get_reservations_by_date
 from moffi_sdk.spaces import BUILDING_TIMEZONE, get_desk_for_date, get_workspace_details
 
@@ -78,7 +78,7 @@ def auto_reservation(  # pylint: disable=too-many-locals,too-many-branches
 
             logging.info(f"Order desk {desk} for date {future_date.date().isoformat()}")
             try:
-                order_desk(
+                order_desk_from_details(
                     order_date=future_date.date(),
                     workspace_details=workspace_details,
                     desk_details=desk_details,

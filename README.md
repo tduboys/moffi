@@ -50,11 +50,23 @@ curl -u <moffi username> http://127.0.0.1:8888/getToken
 Enjoy
 
 
+## Simply order a desk
+
+To order a desk for a given date
+
+```bash
+python order_desk.py -u <moffi username> -p <moffi password> -c <City where to book> -w <Workspace name> -d <Desk full name>
+```
+See Moffi web interface to find City, Workspace and Desk names
+
+
 ## Auto-Reservation
 
 To order the same desk every possible days, up to 30 days
 
 ```bash
-python auto_reservation.py -u <moffi username> -p <moffi password> -c <City where to book> -w <Workspace name> -d <Desk full name>
+python auto_reservation.py -u <moffi username> -p <moffi password> -c <City where to book> -w <Workspace name> -d <Desk full name> -t <Date on isoformat>
 ```
 See Moffi web interface to find City, Workspace and Desk names
+
+It does not order a desk if there is already a reservation for a date, even if reservation is cancelled.
