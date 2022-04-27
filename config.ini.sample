@@ -1,0 +1,14 @@
+[Logging]
+Verbose = False
+
+[Auth]
+User = user@moffi.io
+Password = mypassword
+
+[Reservation]
+City = Marseille
+Workspace = Framework 3
+Desk = Desk4_46
+
+[Moffics]
+Secret = 32-chars-token
