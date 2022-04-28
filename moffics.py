@@ -147,7 +147,9 @@ if __name__ == "__main__":
     PARSER.add_argument("--listen", "-l", help="Listen address")
     PARSER.add_argument("--port", "-p", help="Listen port")
     PARSER.add_argument(
-        "--secret", "-s", help="Secret key for token auth",
+        "--secret",
+        "-s",
+        help="Secret key for token auth",
     )
     PARSER.add_argument("--config", help="Config file")
     CONFIG_TEMPLATE = {

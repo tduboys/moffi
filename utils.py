@@ -8,6 +8,8 @@ import os
 from configparser import ConfigParser
 from typing import Any, Dict, List
 
+from dateutil import parser as dateparser
+
 DEFAULT_CONFIG_RESERVATION_TEMPLATE = {
     "verbose": {"section": "Logging", "key": "Verbose", "mandatory": False, "default_value": False},
     "user": {"section": "Auth", "key": "User", "mandatory": True},
@@ -62,6 +64,11 @@ def parse_config(  # pylint: disable=too-many-branches
         if var in argv.__dict__ and getattr(argv, var) is not None:
             config[var] = getattr(argv, var)  # pylint: disable=modified-iterating-dict
 
+    # reformat config
+    for ckey, settings in config_template.items():
+        if settings.get("formatter") is not None and config.get(ckey) is not None:
+            config[ckey] = settings["formatter"](config[ckey])
+
     # check mandatory config
     for ckey, settings in config_template.items():
         if settings.get("mandatory", False) and ckey not in config:
@@ -91,3 +98,44 @@ def setup_logging(conf: Dict[str, str]) -> None:
     else:
         level = logging.INFO
     logging.basicConfig(level=level)
+
+
+def format_working_days(conf: Any) -> List[int]:
+    """Format working_days config to a valid config"""
+
+    if isinstance(conf, list):
+        conf_list = conf
+    elif isinstance(conf, str):
+        # test multiple separators
+        if "," in conf:
+            conf_list = conf.split(",")
+        elif " " in conf:
+            conf_list = conf.split()
+        else:
+            logging.warning(f"Unable to parse working days {conf}")
+            return []
+    else:
+        logging.warning(f"Working days conf is unknown type {conf}")
+        return []
+
+    work_days = set()
+    for item in conf_list:
+        # test conf as int
+        try:
+            day = int(item)
+            if -1 < day < 8:
+                work_days.add(day)
+                continue
+            logging.warning(f"Ignoring working day {day}")
+        except ValueError:
+            pass
+
+        # test conf as strftime date style
+        try:
+            fulldate = dateparser.parse(item)
+            day = int(fulldate.strftime("%w"))
+            work_days.add(day)
+        except (dateparser.ParserError, ValueError):
+            logging.warning(f"Ignoring unparseable day {item}")
+
+    return list(work_days)
