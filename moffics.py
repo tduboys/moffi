@@ -10,8 +10,6 @@ Return as ICS datas
 import argparse
 import base64
 import json
-import random
-import string
 import sys
 from typing import List
 
@@ -21,7 +19,7 @@ from ics import Calendar, Event
 
 from moffi_sdk.auth import get_auth_token, signin
 from moffi_sdk.reservations import ReservationItem, get_reservations
-from utils import parse_config
+from utils import ConfigError, parse_config
 
 APP = Flask(__name__)
 
@@ -144,17 +142,28 @@ def get_with_token(token: str):
 
 if __name__ == "__main__":
 
-    DEFAULT_SECRET = "".join(random.choice(string.ascii_letters) for x in range(32))
-
     PARSER = argparse.ArgumentParser()
     PARSER.add_argument("--verbose", "-v", action="store_true", help="More verbose")
-    PARSER.add_argument("--listen", "-l", help="Listen address (default to 0.0.0.0)", default="0.0.0.0")
-    PARSER.add_argument("--port", "-p", help="Listen port (default to 8888)", default="8888")
-    PARSER.add_argument("--secret", "-s", help="Secret key for token auth", default=DEFAULT_SECRET)
+    PARSER.add_argument("--listen", "-l", help="Listen address")
+    PARSER.add_argument("--port", "-p", help="Listen port")
+    PARSER.add_argument(
+        "--secret",
+        "-s",
+        help="Secret key for token auth",
+    )
     PARSER.add_argument("--config", help="Config file")
-    ARGS = PARSER.parse_args()
-    CONFIG_TEMPLATE = {"Logging": ["Verbose"], "Moffics": ["Secret"]}
-    CONF = parse_config(argv=ARGS, config_template=CONFIG_TEMPLATE)
+    CONFIG_TEMPLATE = {
+        "verbose": {"section": "Logging", "key": "Verbose", "mandatory": False, "default_value": False},
+        "listen": {"section": "Moffics", "key": "Listen", "mandatory": True, "default_value": "0.0.0.0"},
+        "port": {"section": "Moffics", "key": "Port", "mandatory": True, "default_value": "8888"},
+        "secret": {"section": "Moffics", "key": "Secret", "mandatory": False},
+    }
+    try:  # pylint: disable=R0801
+        CONF = parse_config(argv=PARSER.parse_args(), config_template=CONFIG_TEMPLATE)
+    except ConfigError as ex:
+        PARSER.print_help()
+        sys.stderr.write(f"\nerror: {str(ex)}\n")
+        sys.exit(2)
 
     if CONF.get("secret"):
         if len(CONF.get("secret")) not in [16, 24, 32]:
@@ -162,4 +171,4 @@ if __name__ == "__main__":
             sys.exit(1)
         APP.config["secret_key"] = CONF.get("secret").encode("utf-8")
 
-    APP.run(host=ARGS.listen, port=ARGS.port, debug=ARGS.verbose)
+    APP.run(host=CONF.get("listen"), port=CONF.get("port"), debug=CONF.get("verbose"))

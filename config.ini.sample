@@ -9,6 +9,7 @@ Password = mypassword
 City = Marseille
 Workspace = Framework 3
 Desk = Desk4_46
+Working Days = Mon, 2, Friday
 
 [Moffics]
 Secret = 32-chars-token

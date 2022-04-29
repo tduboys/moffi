@@ -4,6 +4,7 @@ Moffi auto reservation functions
 
 import logging
 from datetime import datetime, timedelta
+from typing import List, Optional
 
 from moffi_sdk.exceptions import OrderException
 from moffi_sdk.order import order_desk_from_details
@@ -13,10 +14,13 @@ from moffi_sdk.spaces import BUILDING_TIMEZONE, get_desk_for_date, get_workspace
 MAX_DAYS = 30
 
 
-def auto_reservation(  # pylint: disable=too-many-locals,too-many-branches
-    desk: str, city: str, workspace: str, auth_token: str
+def auto_reservation(  # pylint: disable=too-many-locals,too-many-branches,too-many-statements
+    desk: str, city: str, workspace: str, auth_token: str, work_days: Optional[List[int]] = None
 ):
     """Auto reservation loop"""
+
+    if work_days is None:
+        work_days = range(1, 7)
 
     workspace_details = get_workspace_details(city=city, workspace=workspace, auth_token=auth_token)
 
@@ -71,6 +75,10 @@ def auto_reservation(  # pylint: disable=too-many-locals,too-many-branches
                 auth_token=auth_token,
                 floor=workspace_details.get("floor", {}).get("level"),
             )
+
+            if int(future_date.strftime("%u")) not in work_days:
+                logging.info(f"{future_date.strftime('%A')} is not on config working days")
+                continue
 
             if desk_details.get("status") != "AVAILABLE":
                 logging.warning(f"Desk {desk} is not available for reservation")

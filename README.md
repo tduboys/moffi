@@ -83,3 +83,5 @@ python auto_reservation.py -u <moffi username> -p <moffi password> -c <City wher
 See Moffi web interface to find City, Workspace and Desk names
 
 It does not order a desk if there is already a reservation for a date, even if reservation is cancelled.
+
+You can define working days to reserve desk only on some days in the week. Define day of week number (Monday is 1) or literral day (eg. Mon, Tue) separated by commas or spaces.
