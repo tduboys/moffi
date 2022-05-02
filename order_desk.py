@@ -22,7 +22,7 @@ if __name__ == "__main__":
     PARSER = setup_reservation_parser()
     PARSER.add_argument("--date", "-t", help="Date to book")
     CONFIG_TEMPLATE = DEFAULT_CONFIG_RESERVATION_TEMPLATE
-    CONFIG_TEMPLATE["order_date"] = {"mandatory": True}
+    CONFIG_TEMPLATE["date"] = {"mandatory": True}
     try:  # pylint: disable=R0801
         CONF = parse_config(argv=PARSER.parse_args(), config_template=CONFIG_TEMPLATE)
     except ConfigError as ex:
@@ -37,6 +37,6 @@ if __name__ == "__main__":
         desk=CONF.get("desk"),
         city=CONF.get("city"),
         workspace=CONF.get("workspace"),
-        order_date=CONF.get("order_date"),
+        order_date=CONF.get("date"),
         auth_token=TOKEN,
     )
