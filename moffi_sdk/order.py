@@ -171,7 +171,7 @@ def order_desk(city: str, workspace: str, desk: str, order_date: str, auth_token
         raise OrderException from ex
 
     if desk_details.get("status") != "AVAILABLE":
-        raise OrderException(f"Desk {desk} is not available for reservation")
+        raise UnavailableException(f"Desk {desk} is not available for reservation")
 
     logging.info(f"Order desk {desk} for date {order_date}")
     order_details = order_desk_from_details(
