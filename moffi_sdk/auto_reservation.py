@@ -66,6 +66,10 @@ def auto_reservation(  # pylint: disable=too-many-locals,too-many-branches,too-m
                 logging.info(f"Workspace is closed on {future_date.strftime('%A')}")
                 continue
 
+            if int(future_date.strftime("%u")) not in work_days:
+                logging.info(f"{future_date.strftime('%A')} is not on config working days")
+                continue
+
             logging.info(f"No reservation for date {future_date.date().isoformat()}")
             desk_details = get_desk_for_date(
                 desk_name=desk,
@@ -75,10 +79,6 @@ def auto_reservation(  # pylint: disable=too-many-locals,too-many-branches,too-m
                 auth_token=auth_token,
                 floor=workspace_details.get("floor", {}).get("level"),
             )
-
-            if int(future_date.strftime("%u")) not in work_days:
-                logging.info(f"{future_date.strftime('%A')} is not on config working days")
-                continue
 
             if desk_details.get("status") != "AVAILABLE":
                 logging.warning(f"Desk {desk} is not available for reservation")
