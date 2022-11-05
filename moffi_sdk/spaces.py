@@ -30,7 +30,8 @@ def get_building(name: str, auth_token: str) -> Dict[str, Any]:
             break
 
     if city is None:
-        raise ItemNotFoundException(f"City {name} not found")
+        buildings = [building.get("name", "NO_NAME") for building in available_buildings]
+        raise ItemNotFoundException(f"City {name} not found", available_items=buildings)
 
     building_details = query(method="GET", url=f"/buildings/{city.get('id')}", auth_token=auth_token)
     BUILDING_TIMEZONE["tz"] = pytz.timezone(building_details.get("timezone", "UTC"))
@@ -74,7 +75,8 @@ def get_workspace_availabilities(
             break
 
     if workspace_details is None:
-        raise ItemNotFoundException(f"Workspace {name} not found")
+        workspaces = [workspace.get("workspace", {}).get("title", "NO_NAME") for workspace in floor_details]
+        raise ItemNotFoundException(f"Workspace {name} not found", available_items=workspaces)
 
     return workspace_details
 
@@ -88,7 +90,8 @@ def get_desk_details_from_workspace(name: str, workspace_details: Dict[str, Any]
             desk_details = seat
             break
     if desk_details is None:
-        raise ItemNotFoundException(f"Desk {name} not found")
+        desks = [seat.get("seat", {}).get("fullname", "NO_NAME") for seat in workspace_details.get("seats", [])]
+        raise ItemNotFoundException(f"Desk {name} not found", available_items=desks)
 
     return desk_details
 
@@ -109,7 +112,10 @@ def get_desk_for_date(  # pylint: disable=too-many-arguments
     }
     workspace_details_list = query(method="GET", url="/workspaces/availabilities", params=params, auth_token=auth_token)
     if not workspace_details_list:
-        raise ItemNotFoundException(f"Workspace id {workspace_id} not found on building {building_id}")
+        workspaces = [workspace.get("workspace", {}).get("id", "NO_NAME") for workspace in workspace_details_list]
+        raise ItemNotFoundException(
+            f"Workspace id {workspace_id} not found on building {building_id}", available_items=workspaces
+        )
     workspace_details = workspace_details_list[0]
 
     desk_details = get_desk_details_from_workspace(name=desk_name, workspace_details=workspace_details)
