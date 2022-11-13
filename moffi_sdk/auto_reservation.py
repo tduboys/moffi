@@ -15,16 +15,16 @@ MAX_DAYS = 30
 
 
 def auto_reservation(  # pylint: disable=too-many-locals,too-many-branches,too-many-statements
-    desk: str, city: str, workspace: str, auth_token: str, work_days: Optional[List[int]] = None
+    desk: str, city: str, workspace: str, work_days: Optional[List[int]] = None
 ):
     """Auto reservation loop"""
 
     if work_days is None:
         work_days = range(1, 7)
 
-    workspace_details = get_workspace_details(city=city, workspace=workspace, auth_token=auth_token)
+    workspace_details = get_workspace_details(city=city, workspace=workspace)
 
-    reservations = get_reservations_by_date(auth_token=auth_token)
+    reservations = get_reservations_by_date()
 
     workspace_reservation_range_min = datetime.now(BUILDING_TIMEZONE.get("tz")) + timedelta(
         minutes=workspace_details.get("plageMini", {}).get("minutes", 0)
@@ -76,7 +76,6 @@ def auto_reservation(  # pylint: disable=too-many-locals,too-many-branches,too-m
                 building_id=workspace_details.get("building", {}).get("id"),
                 workspace_id=workspace_details.get("id"),
                 target_date=future_date.date(),
-                auth_token=auth_token,
                 floor=workspace_details.get("floor", {}).get("level"),
             )
 
@@ -90,7 +89,6 @@ def auto_reservation(  # pylint: disable=too-many-locals,too-many-branches,too-m
                     order_date=future_date.date(),
                     workspace_details=workspace_details,
                     desk_details=desk_details,
-                    auth_token=auth_token,
                 )
                 logging.info("Order successful")
             except OrderException as ex:

@@ -9,8 +9,7 @@ from typing import Dict, List
 
 from dateutil import parser as dateparser
 
-from moffi_sdk.exceptions import MoffiSdkException
-from moffi_sdk.utils import query
+from moffi_sdk.auth import session
 
 AVAILABLE_STEPS = {
     "validation": "VALIDATION",
@@ -42,21 +41,18 @@ class ReservationItem:
         )
 
 
-def get_reservations(auth_token: str, steps: List[str] = None, view_cancelled: bool = True) -> List[ReservationItem]:
+def get_reservations(steps: List[str] = None, view_cancelled: bool = True) -> List[ReservationItem]:
     """
     Get all reservations
     """
 
     reservations = []
 
-    if not auth_token:
-        raise MoffiSdkException("Missing token on get_reservations")
-
     if steps is None:
         steps = AVAILABLE_STEPS.keys()
 
     # count number of items
-    counts = query(method="GET", url="/orders/count", auth_token=auth_token)
+    counts = session.query(method="GET", url="/orders/count")
 
     for step in steps:
         if AVAILABLE_STEPS.get(step) is None or counts.get(step) is None:
@@ -69,7 +65,7 @@ def get_reservations(auth_token: str, steps: List[str] = None, view_cancelled: b
             continue
 
         params = {"step": AVAILABLE_STEPS.get(step), "kind": "BOOKING", "size": size, "page": 0}
-        unparsed_reservations = query(method="GET", url="/orders", params=params, auth_token=auth_token)
+        unparsed_reservations = session.query(method="GET", url="/orders", params=params)
         reservations += map_reservations(unparsed_reservations)
 
     if view_cancelled:
@@ -77,7 +73,7 @@ def get_reservations(auth_token: str, steps: List[str] = None, view_cancelled: b
             logging.debug("No reservations on state cancelled")
         else:
             params = {"status": "CANCELLED", "size": counts.get("cancelled"), "page": 0}
-            unparsed_reservations = query(method="GET", url="/orders", params=params, auth_token=auth_token)
+            unparsed_reservations = session.query(method="GET", url="/orders", params=params)
             reservations += map_reservations(unparsed_reservations)
 
     return reservations
@@ -115,14 +111,12 @@ def map_reservations(reservations: dict) -> List[ReservationItem]:
     return cleaned
 
 
-def get_reservations_by_date(
-    auth_token: str, steps: List[str] = None, view_cancelled: bool = True
-) -> Dict[str, List[ReservationItem]]:
+def get_reservations_by_date(steps: List[str] = None, view_cancelled: bool = True) -> Dict[str, List[ReservationItem]]:
     """
     Get all reservations in dict format, key is starting date, value are list of reservations for this date
     """
 
-    reservations = get_reservations(auth_token=auth_token, steps=steps, view_cancelled=view_cancelled)
+    reservations = get_reservations(steps=steps, view_cancelled=view_cancelled)
 
     ordered_reservations = defaultdict(list)
 

@@ -5,7 +5,7 @@ Moffi Auto-reservation main program
 """
 import sys
 
-from moffi_sdk.auth import get_auth_token
+from moffi_sdk.auth import session
 from moffi_sdk.auto_reservation import auto_reservation
 from utils import (  # pylint: disable=R0801
     DEFAULT_CONFIG_RESERVATION_TEMPLATE,
@@ -36,11 +36,10 @@ if __name__ == "__main__":
         sys.exit(2)
     setup_logging(CONF)
 
-    TOKEN = get_auth_token(username=CONF.get("user"), password=CONF.get("password"))
+    session.signin(username=CONF.get("user"), password=CONF.get("password"))
     auto_reservation(
         desk=CONF.get("desk"),
         city=CONF.get("city"),
         workspace=CONF.get("workspace"),
-        auth_token=TOKEN,
         work_days=CONF.get("workingdays"),
     )
