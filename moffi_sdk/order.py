@@ -7,13 +7,13 @@ from typing import Any, Dict
 
 from rfc3339 import rfc3339
 
+from moffi_sdk.auth import session
 from moffi_sdk.exceptions import OrderException, RequestException, UnavailableException
 from moffi_sdk.spaces import BUILDING_TIMEZONE, get_desk_for_date, get_workspace_details
-from moffi_sdk.utils import query
 
 
 def order_desk_from_details(  # pylint: disable=too-many-locals
-    order_date: date, workspace_details: Dict[str, Any], desk_details: Dict[str, Any], auth_token: str
+    order_date: date, workspace_details: Dict[str, Any], desk_details: Dict[str, Any]
 ) -> Dict[str, Any]:
     """
     Order a desk in a workspace
@@ -21,7 +21,6 @@ def order_desk_from_details(  # pylint: disable=too-many-locals
     :param order_date: date to order
     :param workspace_details: json with all details of workspace (see moffi_sdk.spaces.get_workspace_details)
     :param desk_details: json with all details of desk (see moffi_sdk.spaces.get_desk_for_date)
-    :param auth_token: API token
     :return: paid order
     :raise: OrderException if error during order
     """
@@ -31,7 +30,7 @@ def order_desk_from_details(  # pylint: disable=too-many-locals
         "start": rfc3339(datetime.combine(order_date, datetime.min.time())),
         "end": rfc3339(datetime.combine(order_date, datetime.max.time())),
     }
-    unavailabilities = query(method="GET", url="/planning/unavailabilities", params=params, auth_token=auth_token)
+    unavailabilities = session.query(method="GET", url="/planning/unavailabilities", params=params)
     if unavailabilities.get(order_date.isoformat(), {}).get("date") == order_date.isoformat():
         raise UnavailableException(f"Orders is unavailable on {order_date.isoformat()}")
 
@@ -75,7 +74,7 @@ def order_desk_from_details(  # pylint: disable=too-many-locals
         "period": "DAY",
         "rrule": None,
     }
-    estimate = query(method="POST", url="/bookings/estimate", data=body_estimate, auth_token=auth_token)
+    estimate = session.query(method="POST", url="/bookings/estimate", data=body_estimate)
 
     # verify desk is available on estimate
     desk_fullname = desk_details.get("seat", {}).get("fullname")
@@ -110,7 +109,7 @@ def order_desk_from_details(  # pylint: disable=too-many-locals
         ],
         "origin": "WIDGET",
     }
-    order = query(method="POST", url="/orders/add", data=body_order, auth_token=auth_token)
+    order = session.query(method="POST", url="/orders/add", data=body_order)
 
     # verify price is 0
     try:
@@ -132,7 +131,7 @@ def order_desk_from_details(  # pylint: disable=too-many-locals
         "methodId": None,
         "target": {"kind": "ORDER", "order": order},
     }
-    paid_order = query(method="POST", url=f"/orders/{order_id}/pay", data=body_pay, auth_token=auth_token)
+    paid_order = session.query(method="POST", url=f"/orders/{order_id}/pay", data=body_pay)
 
     if paid_order.get("status") != "PAID":
         OrderException(f"Paid order is not on status PAID : {paid_order.get('status')}")
@@ -140,7 +139,7 @@ def order_desk_from_details(  # pylint: disable=too-many-locals
     return paid_order
 
 
-def order_desk(city: str, workspace: str, desk: str, order_date: str, auth_token: str) -> Dict[str, Any]:
+def order_desk(city: str, workspace: str, desk: str, order_date: str) -> Dict[str, Any]:
     """
     Order a desk from basic details
 
@@ -148,7 +147,6 @@ def order_desk(city: str, workspace: str, desk: str, order_date: str, auth_token
     :param workspace: Workspace where order a desk
     :param desk: Desk fullname to order
     :param order_date: date in isoformat to book
-    :param auth
     :return: Completed order
     :raise: OrderException in case of error
     """
@@ -158,13 +156,12 @@ def order_desk(city: str, workspace: str, desk: str, order_date: str, auth_token
         raise OrderException from ex
 
     try:
-        workspace_details = get_workspace_details(city=city, workspace=workspace, auth_token=auth_token)
+        workspace_details = get_workspace_details(city=city, workspace=workspace)
         desk_details = get_desk_for_date(
             desk_name=desk,
             building_id=workspace_details.get("building", {}).get("id"),
             workspace_id=workspace_details.get("id"),
             target_date=target_date,
-            auth_token=auth_token,
             floor=workspace_details.get("floor", {}).get("level"),
         )
     except RequestException as ex:
@@ -178,7 +175,6 @@ def order_desk(city: str, workspace: str, desk: str, order_date: str, auth_token
         order_date=target_date,
         workspace_details=workspace_details,
         desk_details=desk_details,
-        auth_token=auth_token,
     )
     logging.info("Order successful")
     return order_details

@@ -10,19 +10,17 @@ from typing import Any, Dict
 import pytz
 from rfc3339 import rfc3339
 
+from moffi_sdk.auth import session
 from moffi_sdk.exceptions import ItemNotFoundException
-from moffi_sdk.utils import query
 
 BUILDING_TIMEZONE = {"tz": pytz.timezone("UTC")}
 
 
-def get_building(name: str, auth_token: str) -> Dict[str, Any]:
+def get_building(name: str) -> Dict[str, Any]:
     """Get details about building"""
 
     # list cities available
-    available_buildings = query(
-        method="get", url="/users/buildings", params={"withDetails": False}, auth_token=auth_token
-    )
+    available_buildings = session.query(method="get", url="/users/buildings", params={"withDetails": False})
     city = None
     for building in available_buildings:
         if building.get("name") == name:
@@ -33,19 +31,19 @@ def get_building(name: str, auth_token: str) -> Dict[str, Any]:
         buildings = [building.get("name", "NO_NAME") for building in available_buildings]
         raise ItemNotFoundException(f"City {name} not found", available_items=buildings)
 
-    building_details = query(method="GET", url=f"/buildings/{city.get('id')}", auth_token=auth_token)
+    building_details = session.query(method="GET", url=f"/buildings/{city.get('id')}")
     BUILDING_TIMEZONE["tz"] = pytz.timezone(building_details.get("timezone", "UTC"))
 
     return building_details
 
 
 def get_workspace_availabilities(
-    name: str, auth_token: str, city: str = None, building_details: Dict[str, Any] = None, target_date: datetime = None
+    name: str, city: str = None, building_details: Dict[str, Any] = None, target_date: datetime = None
 ) -> Dict[str, Any]:
     """Get details about workspace"""
 
     if building_details is None:
-        building_details = get_building(name=city, auth_token=auth_token)
+        building_details = get_building(name=city)
 
     # iterate on floors to find workspace
     workspace_details = None
@@ -61,11 +59,10 @@ def get_workspace_availabilities(
             "period": "DAY",
             "floor": floor.get("level"),
         }
-        floor_details = query(
+        floor_details = session.query(
             method="get",
             url="/workspaces/availabilities",
             params=params,
-            auth_token=auth_token,
         )
         for workspace in floor_details:
             if workspace.get("workspace", {}).get("title", "") == name:
@@ -97,7 +94,7 @@ def get_desk_details_from_workspace(name: str, workspace_details: Dict[str, Any]
 
 
 def get_desk_for_date(  # pylint: disable=too-many-arguments
-    desk_name: str, building_id: str, workspace_id: str, floor: int, target_date: date, auth_token: str
+    desk_name: str, building_id: str, workspace_id: str, floor: int, target_date: date
 ) -> Dict[str, Any]:
     """Get desk availabilities for a given date"""
 
@@ -110,7 +107,7 @@ def get_desk_for_date(  # pylint: disable=too-many-arguments
         "startDate": rfc3339(datetime.combine(target_date, datetime.min.time())),
         "endDate": rfc3339(datetime.combine(target_date, datetime.max.time())),
     }
-    workspace_details_list = query(method="GET", url="/workspaces/availabilities", params=params, auth_token=auth_token)
+    workspace_details_list = session.query(method="GET", url="/workspaces/availabilities", params=params)
     if not workspace_details_list:
         workspaces = [workspace.get("workspace", {}).get("id", "NO_NAME") for workspace in workspace_details_list]
         raise ItemNotFoundException(
@@ -123,19 +120,16 @@ def get_desk_for_date(  # pylint: disable=too-many-arguments
     return desk_details
 
 
-def get_workspace_details(city: str, workspace: str, auth_token: str) -> Dict[str, Any]:
+def get_workspace_details(city: str, workspace: str) -> Dict[str, Any]:
     """Get all workspace details"""
 
-    building_details = get_building(name=city, auth_token=auth_token)
-    workspace_availabilities = get_workspace_availabilities(
-        name=workspace, building_details=building_details, auth_token=auth_token
-    )
+    building_details = get_building(name=city)
+    workspace_availabilities = get_workspace_availabilities(name=workspace, building_details=building_details)
 
     # https://api.moffi.io/api/workspaces/url/coworking/418608-Paris-23-personnes
-    workspace_details = query(
+    workspace_details = session.query(
         method="GET",
         url=f"/workspaces/url/{workspace_availabilities.get('workspace', {}).get('url')}",
-        auth_token=auth_token,
     )
 
     return workspace_details

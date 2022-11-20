@@ -17,7 +17,7 @@ from Crypto.Cipher import AES
 from flask import Flask, Response, abort, make_response, request
 from ics import Calendar, Event
 
-from moffi_sdk.auth import get_auth_token, signin
+from moffi_sdk.auth import session
 from moffi_sdk.reservations import ReservationItem, get_reservations
 from utils import ConfigError, parse_config
 
@@ -72,15 +72,12 @@ def generate_calendar(events: List[ReservationItem]) -> Calendar:
     return cal
 
 
-def get_ics_from_moffi(token: str) -> Response:
+def get_ics_from_moffi() -> Response:
     """
     Get all reservations from moffi
     Return a flask responce object
     """
-    if not token:
-        abort(500, "missing token in user profile")
-
-    reservations = get_reservations(auth_token=token, view_cancelled=False, steps=["waiting", "inProgress"])
+    reservations = get_reservations(view_cancelled=False, steps=["waiting", "inProgress"])
 
     calendar = generate_calendar(reservations)
     response = make_response(str(calendar), 200)
@@ -98,9 +95,9 @@ def get_with_basicauth():
         abort(401, "missing authentication")
     APP.logger.debug(f"Login : {auth.username}")  # pylint: disable=no-member
 
-    token = get_auth_token(username=auth.username, password=auth.password)
+    session.signin(username=auth.username, password=auth.password)
 
-    return get_ics_from_moffi(token=token)
+    return get_ics_from_moffi()
 
 
 @APP.route("/getToken")
@@ -117,7 +114,7 @@ def generate_token():
     APP.logger.debug(f"Login : {auth.username}")  # pylint: disable=no-member
 
     # ensure auth is legitimate
-    signin(username=auth.username, password=auth.password)
+    session.signin(username=auth.username, password=auth.password)
 
     message = json.dumps({"login": auth.username, "password": auth.password})
     token = encrypt(message, APP.config.get("secret_key"))
@@ -135,9 +132,9 @@ def get_with_token(token: str):
     jauth = json.loads(authent)
     APP.logger.debug(f"Login : {jauth.get('login')}")  # pylint: disable=no-member
 
-    moffi_token = get_auth_token(username=jauth.get("login"), password=jauth.get("password"))
+    session.signin(username=jauth.get("login"), password=jauth.get("password"))
 
-    return get_ics_from_moffi(token=moffi_token)
+    return get_ics_from_moffi()
 
 
 if __name__ == "__main__":

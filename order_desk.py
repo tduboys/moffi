@@ -7,7 +7,7 @@ Main program
 
 import sys
 
-from moffi_sdk.auth import get_auth_token
+from moffi_sdk.auth import session
 from moffi_sdk.order import order_desk
 from utils import (  # pylint: disable=R0801
     DEFAULT_CONFIG_RESERVATION_TEMPLATE,
@@ -32,11 +32,10 @@ if __name__ == "__main__":
 
     setup_logging(CONF)
 
-    TOKEN = get_auth_token(username=CONF.get("user"), password=CONF.get("password"))
+    session.signin(username=CONF.get("user"), password=CONF.get("password"))
     order_desk(
         desk=CONF.get("desk"),
         city=CONF.get("city"),
         workspace=CONF.get("workspace"),
         order_date=CONF.get("date"),
-        auth_token=TOKEN,
     )
