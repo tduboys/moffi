@@ -10,6 +10,7 @@ from typing import Dict, List
 from dateutil import parser as dateparser
 
 from moffi_sdk.exceptions import MoffiSdkException
+from moffi_sdk.spaces import BUILDING_TIMEZONE
 from moffi_sdk.utils import query
 
 AVAILABLE_STEPS = {
@@ -19,7 +20,7 @@ AVAILABLE_STEPS = {
     "inProgress": "IN_PROGRESS",
     "finished": "FINISHED",
 }
-AVAILABLE_STATUS = ["CREATED", "VALIDATED", "CONFIRMED", "PAID", "FINISHED", "CANCELLED"]
+AVAILABLE_STATUS = ["CREATED", "VALIDATED", "CONFIRMED", "PAID"]
 
 
 @dataclass
@@ -42,7 +43,7 @@ class ReservationItem:
         )
 
 
-def get_reservations(auth_token: str, steps: List[str] = None, view_cancelled: bool = True) -> List[ReservationItem]:
+def get_reservations(auth_token: str, steps: List[str] = None) -> List[ReservationItem]:
     """
     Get all reservations
     """
@@ -68,18 +69,54 @@ def get_reservations(auth_token: str, steps: List[str] = None, view_cancelled: b
             logging.debug(f"No reservations on step {step}")
             continue
 
-        params = {"step": AVAILABLE_STEPS.get(step), "kind": "BOOKING", "size": size, "page": 0}
-        unparsed_reservations = query(method="GET", url="/orders", params=params, auth_token=auth_token)
-        reservations += map_reservations(unparsed_reservations)
+        page = 0
+        max_size = 10
+        returned_size = max_size
+        while returned_size == max_size:
+            params = [
+                ("step", AVAILABLE_STEPS.get(step)),
+                ("kind", "BOOKING"),
+                ("size", max_size),
+                ("page", page),
+                ("sort", "start_date,asc"),
+            ]
+            for status in AVAILABLE_STATUS:
+                params.append(("status", status))
 
-    if view_cancelled:
-        if counts.get("cancelled") == 0:
-            logging.debug("No reservations on state cancelled")
-        else:
-            params = {"status": "CANCELLED", "size": counts.get("cancelled"), "page": 0}
             unparsed_reservations = query(method="GET", url="/orders", params=params, auth_token=auth_token)
-            reservations += map_reservations(unparsed_reservations)
+            new_reservations = map_reservations(unparsed_reservations)
+            reservations += new_reservations
+            returned_size = len(new_reservations)
+            page += 1
 
+    return reservations
+
+
+def get_cancelled_reservations(auth_token: str, include_past: bool = False) -> List[ReservationItem]:
+    """
+    Get cancelled reservations
+    """
+    reservations = []
+    page = 0
+    max_size = 10
+    returned_size = max_size
+    need_break = False
+    today = datetime.now(BUILDING_TIMEZONE.get("tz")).date()
+    while returned_size == max_size:
+        params = {"status": "CANCELLED", "size": max_size, "page": page, "sort": "start_date,desc"}
+        unparsed_reservations = query(method="GET", url="/orders", params=params, auth_token=auth_token)
+        new_reservations = map_reservations(unparsed_reservations)
+        for resa in new_reservations:
+            if resa.start.date() > today:
+                reservations.append(resa)
+            else:
+                logging.debug("Found cancelled reservation in the past, break")
+                need_break = True
+                break
+        if need_break:
+            break
+        returned_size = len(new_reservations)
+        page += 1
     return reservations
 
 
@@ -122,7 +159,9 @@ def get_reservations_by_date(
     Get all reservations in dict format, key is starting date, value are list of reservations for this date
     """
 
-    reservations = get_reservations(auth_token=auth_token, steps=steps, view_cancelled=view_cancelled)
+    reservations = get_reservations(auth_token=auth_token, steps=steps)
+    if view_cancelled:
+        reservations += get_cancelled_reservations(auth_token=auth_token)
 
     ordered_reservations = defaultdict(list)
 

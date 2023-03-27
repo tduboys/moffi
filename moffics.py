@@ -80,7 +80,7 @@ def get_ics_from_moffi(token: str) -> Response:
     if not token:
         abort(500, "missing token in user profile")
 
-    reservations = get_reservations(auth_token=token, view_cancelled=False, steps=["waiting", "inProgress"])
+    reservations = get_reservations(auth_token=token, steps=["waiting", "inProgress"])
 
     calendar = generate_calendar(reservations)
     response = make_response(str(calendar), 200)
