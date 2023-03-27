@@ -24,7 +24,9 @@ def auto_reservation(  # pylint: disable=too-many-locals,too-many-branches,too-m
 
     workspace_details = get_workspace_details(city=city, workspace=workspace, auth_token=auth_token)
 
-    reservations = get_reservations_by_date(auth_token=auth_token)
+    reservations = get_reservations_by_date(
+        auth_token=auth_token, steps=["validation", "invitation", "waiting", "inProgress"]
+    )
 
     workspace_reservation_range_min = datetime.now(BUILDING_TIMEZONE.get("tz")) + timedelta(
         minutes=workspace_details.get("plageMini", {}).get("minutes", 0)
