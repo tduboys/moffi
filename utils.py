@@ -112,8 +112,7 @@ def format_working_days(conf: Any) -> List[int]:
         elif " " in conf:
             conf_list = conf.split()
         else:
-            logging.warning(f"Unable to parse working days {conf}")
-            return []
+            conf_list = [conf]
     else:
         logging.warning(f"Working days conf is unknown type {conf}")
         return []
