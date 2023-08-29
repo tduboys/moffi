@@ -30,6 +30,7 @@ class ReservationItem:
     workspace_name: str
     workspace_address: str
     workspace_type: str
+    workspace_city: str
     desk_name: str
     start: datetime
     end: datetime
@@ -137,6 +138,7 @@ def map_reservations(reservations: dict) -> List[ReservationItem]:
             workspace = booking.get("workspace", {}).get("title")
             workspace_type = booking.get("workspace", {}).get("type")
             address = booking.get("workspace", {}).get("address")
+            city = booking.get("workspace", {}).get("building", {}).get("name")
             start = dateparser.parse(booking.get("start"))
             end = dateparser.parse(booking.get("end"))
 
@@ -145,6 +147,7 @@ def map_reservations(reservations: dict) -> List[ReservationItem]:
                     workspace_name=workspace,
                     workspace_address=address,
                     workspace_type=workspace_type,
+                    workspace_city=city,
                     desk_name=seat.get("seat", {}).get("fullname"),
                     start=start,
                     end=end,
@@ -158,6 +161,7 @@ def map_reservations(reservations: dict) -> List[ReservationItem]:
                     workspace_name=workspace,
                     workspace_address=address,
                     workspace_type=workspace_type,
+                    workspace_city=city,
                     desk_name=None,
                     start=start,
                     end=end,

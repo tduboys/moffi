@@ -40,6 +40,7 @@ if __name__ == "__main__":
         desk=CONF.get("desk"),
         city=CONF.get("city"),
         workspace=CONF.get("workspace"),
+        parking=CONF.get("parking"),
         auth_token=TOKEN,
         work_days=CONF.get("workingdays"),
     )

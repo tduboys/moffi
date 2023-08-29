@@ -8,7 +8,7 @@ Main program
 import sys
 
 from moffi_sdk.auth import get_auth_token
-from moffi_sdk.order import order_desk
+from moffi_sdk.order import order_desk, order_parking
 from utils import (  # pylint: disable=R0801
     DEFAULT_CONFIG_RESERVATION_TEMPLATE,
     ConfigError,
@@ -39,3 +39,11 @@ if __name__ == "__main__":
         order_date=CONF.get("date"),
         auth_token=TOKEN,
     )
+
+    if CONF.get("parking"):
+        order_parking(
+            city=CONF.get("city"),
+            parking=CONF.get("parking"),
+            order_date=CONF.get("date"),
+            auth_token=TOKEN,
+        )

@@ -17,6 +17,7 @@ DEFAULT_CONFIG_RESERVATION_TEMPLATE = {
     "city": {"section": "Reservation", "key": "City", "mandatory": True},
     "workspace": {"section": "Reservation", "key": "Workspace", "mandatory": True},
     "desk": {"section": "Reservation", "key": "Desk", "mandatory": True},
+    "parking": {"section": "Parking", "key": "Name", "mandatory": False},
 }
 
 
@@ -85,6 +86,7 @@ def setup_reservation_parser() -> argparse.ArgumentParser:
     parser.add_argument("--password", "-p", help="Moffi password")
     parser.add_argument("--city", "-c", help="City to book")
     parser.add_argument("--workspace", "-w", help="Workspace to book")
+    parser.add_argument("--parking", "-P", help="Parking to book")
     parser.add_argument("--desk", "-d", help="Desk to book")
     parser.add_argument("--config", help="Config file path")
 
