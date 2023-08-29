@@ -63,7 +63,7 @@ def generate_calendar(events: List[ReservationItem]) -> Calendar:
     cal = Calendar()
     for item in events:
         event = Event()
-        event.name = f"{item.workspace_name} - {item.desk_name}"
+        event.name = f"{item.workspace_name} - {item.desk_name}" if item.desk_name else item.workspace_name
         event.begin = item.start.isoformat()
         event.end = item.end.isoformat()
         event.location = item.workspace_address
@@ -83,7 +83,7 @@ def get_ics_from_moffi(token: str) -> Response:
     reservations = get_reservations(auth_token=token, steps=["waiting", "inProgress"])
 
     calendar = generate_calendar(reservations)
-    response = make_response(str(calendar), 200)
+    response = make_response(calendar.serialize(), 200)
     response.mimetype = "text/html"
     return response
 
@@ -141,7 +141,6 @@ def get_with_token(token: str):
 
 
 if __name__ == "__main__":
-
     PARSER = argparse.ArgumentParser()
     PARSER.add_argument("--verbose", "-v", action="store_true", help="More verbose")
     PARSER.add_argument("--listen", "-l", help="Listen address")

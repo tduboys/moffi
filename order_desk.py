@@ -18,7 +18,6 @@ from utils import (  # pylint: disable=R0801
 )
 
 if __name__ == "__main__":
-
     PARSER = setup_reservation_parser()
     PARSER.add_argument("--date", "-t", metavar="YYYY-MM-DD", help="Date to book")
     CONFIG_TEMPLATE = DEFAULT_CONFIG_RESERVATION_TEMPLATE

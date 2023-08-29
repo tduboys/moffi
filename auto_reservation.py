@@ -17,7 +17,6 @@ from utils import (  # pylint: disable=R0801
 )
 
 if __name__ == "__main__":
-
     PARSER = setup_reservation_parser()
     PARSER.add_argument("--workingdays", nargs="+", help="Days on week to book", required=False)
     CONFIG_TEMPLATE = DEFAULT_CONFIG_RESERVATION_TEMPLATE
