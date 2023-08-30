@@ -17,7 +17,7 @@ DEFAULT_CONFIG_RESERVATION_TEMPLATE = {
     "city": {"section": "Reservation", "key": "City", "mandatory": True},
     "workspace": {"section": "Reservation", "key": "Workspace", "mandatory": True},
     "desk": {"section": "Reservation", "key": "Desk", "mandatory": True},
-    "parking": {"section": "Parking", "key": "Name", "mandatory": False},
+    "parking": {"section": "Reservation", "key": "Parking", "mandatory": False},
 }
 
 
