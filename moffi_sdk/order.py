@@ -71,14 +71,14 @@ def order_desk_from_details(  # pylint: disable=too-many-locals
         "isMonthlyBooking": False,
         "places": 1,
         "days": [{"day": order_date.isoformat(), "date": rfc3339(start_date, utc=True), "period": "DAY"}],
-        "bookedSeats": [{"seat": desk_details.get("seat")}],
+        "bookedSeats": [{"seat": desk_details.get("seat")}] if desk_details else [],
         "period": "DAY",
         "rrule": None,
     }
     estimate = query(method="POST", url="/bookings/estimate", data=body_estimate, auth_token=auth_token)
 
     # verify desk is available on estimate
-    desk_fullname = desk_details.get("seat", {}).get("fullname")
+    desk_fullname = desk_details.get("seat", {}).get("fullname") if desk_details else "Parking"
     if estimate.get("errorCode"):
         raise UnavailableException(
             f"Error during estimate for desk {desk_fullname} on {order_date.isoformat()} : {estimate.get('errorCode')}"
@@ -102,7 +102,7 @@ def order_desk_from_details(  # pylint: disable=too-many-locals
                 "isMonthlyBooking": False,
                 "coupon": None,
                 "period": "DAY",
-                "bookedSeats": [{"seat": desk_details.get("seat")}],
+                "bookedSeats": [{"seat": desk_details.get("seat")}] if desk_details else [],
                 "days": [{"day": order_date.isoformat(), "date": rfc3339(start_date, utc=True), "period": "DAY"}],
                 "bookNextToInfo": {"id": None},
                 "rrule": None,
@@ -178,6 +178,38 @@ def order_desk(city: str, workspace: str, desk: str, order_date: str, auth_token
         order_date=target_date,
         workspace_details=workspace_details,
         desk_details=desk_details,
+        auth_token=auth_token,
+    )
+    logging.info("Order successful")
+    return order_details
+
+
+def order_parking(city: str, parking: str, order_date: str, auth_token: str) -> Dict[str, Any]:
+    """
+    Order a parking from basic details
+
+    :param city: City where Workspace is located
+    :param parking: Parking where order a place
+    :param order_date: date in isoformat to book
+    :param auth
+    :return: Completed order
+    :raise: OrderException in case of error
+    """
+    try:
+        target_date = date.fromisoformat(order_date)
+    except ValueError as ex:
+        raise OrderException from ex
+
+    try:
+        workspace_details = get_workspace_details(city=city, workspace=parking, auth_token=auth_token)
+    except RequestException as ex:
+        raise OrderException from ex
+
+    logging.info(f"Order parking {parking} for date {order_date}")
+    order_details = order_desk_from_details(
+        order_date=target_date,
+        workspace_details=workspace_details,
+        desk_details=None,
         auth_token=auth_token,
     )
     logging.info("Order successful")

@@ -29,6 +29,8 @@ class ReservationItem:
 
     workspace_name: str
     workspace_address: str
+    workspace_type: str
+    workspace_city: str
     desk_name: str
     start: datetime
     end: datetime
@@ -38,6 +40,7 @@ class ReservationItem:
     def __str__(self):
         return (
             f"{self.workspace_name} - {self.desk_name}"
+            f" / {self.workspace_type}"
             f" / status {self.status} / step {self.step}"
             f" / from {self.start.isoformat()} to {self.end.isoformat()}"
         )
@@ -133,7 +136,9 @@ def map_reservations(reservations: dict) -> List[ReservationItem]:
 
         for booking in reservation.get("bookings", []):
             workspace = booking.get("workspace", {}).get("title")
+            workspace_type = booking.get("workspace", {}).get("type")
             address = booking.get("workspace", {}).get("address")
+            city = booking.get("workspace", {}).get("building", {}).get("name")
             start = dateparser.parse(booking.get("start"))
             end = dateparser.parse(booking.get("end"))
 
@@ -141,7 +146,23 @@ def map_reservations(reservations: dict) -> List[ReservationItem]:
                 item = ReservationItem(
                     workspace_name=workspace,
                     workspace_address=address,
+                    workspace_type=workspace_type,
+                    workspace_city=city,
                     desk_name=seat.get("seat", {}).get("fullname"),
+                    start=start,
+                    end=end,
+                    step=step,
+                    status=status,
+                )
+                cleaned.append(item)
+            if not booking.get("bookedSeats"):
+                # some workspaces dont have a seat, like parkings
+                item = ReservationItem(
+                    workspace_name=workspace,
+                    workspace_address=address,
+                    workspace_type=workspace_type,
+                    workspace_city=city,
+                    desk_name=None,
                     start=start,
                     end=end,
                     step=step,

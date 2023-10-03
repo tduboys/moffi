@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from typing import List, Optional
 
 from moffi_sdk.exceptions import OrderException
-from moffi_sdk.order import order_desk_from_details
+from moffi_sdk.order import order_desk_from_details, order_parking
 from moffi_sdk.reservations import get_reservations_by_date
 from moffi_sdk.spaces import BUILDING_TIMEZONE, get_desk_for_date, get_workspace_details
 
@@ -15,7 +15,12 @@ MAX_DAYS = 30
 
 
 def auto_reservation(  # pylint: disable=too-many-locals,too-many-branches,too-many-statements
-    desk: str, city: str, workspace: str, auth_token: str, work_days: Optional[List[int]] = None
+    desk: str,
+    city: str,
+    workspace: str,
+    auth_token: str,
+    parking: Optional[str] = None,
+    work_days: Optional[List[int]] = None,
 ):
     """Auto reservation loop"""
 
@@ -98,3 +103,61 @@ def auto_reservation(  # pylint: disable=too-many-locals,too-many-branches,too-m
             except OrderException as ex:
                 logging.warning(f"Unable to order desk : {repr(ex)}")
                 continue
+
+    if parking:
+        auto_parking(city=city, parking=parking, auth_token=auth_token)
+
+
+def auto_parking(city: str, parking: str, auth_token: str):
+    """Order a parking for all reservations in the same city"""
+
+    # get upcoming reservations
+    reservations_by_date = get_reservations_by_date(
+        auth_token=auth_token, steps=["validation", "invitation", "waiting", "inProgress"], view_cancelled=False
+    )
+
+    parking_details = get_workspace_details(city=city, workspace=parking, auth_token=auth_token)
+    parking_reservation_range_min = datetime.now(BUILDING_TIMEZONE.get("tz")) + timedelta(
+        minutes=parking_details.get("plageMini", {}).get("minutes", 0)
+    )
+    parking_reservation_range_max = datetime.now(BUILDING_TIMEZONE.get("tz")) + timedelta(
+        minutes=parking_details.get("plageMaxi", {}).get("minutes", 0)
+    )
+    # set max range at end of day
+    parking_reservation_range_max = datetime.combine(
+        parking_reservation_range_max.date(), datetime.max.time(), tzinfo=parking_reservation_range_max.tzinfo
+    )
+
+    hour_now = datetime.now(BUILDING_TIMEZONE.get("tz")).time()
+    # for all reservation in same city, check if parking for the same date
+    for day, reservations in reservations_by_date.items():
+        future_date = datetime.combine(date=day, time=hour_now, tzinfo=BUILDING_TIMEZONE.get("tz"))
+        parking_needed = False
+        parking_ordered = False
+        for reservation in reservations:
+            if reservation.workspace_type == "parking":
+                parking_ordered = True
+            elif reservation.workspace_type != "parking" and reservation.workspace_city == city:
+                parking_needed = True
+
+        if parking_needed and not parking_ordered:
+            logging.info(f"Parking needed for date {day.isoformat()}")
+            if parking_reservation_range_min > future_date:
+                logging.info(f"Date {day.isoformat()} is too close from now to reserve a parking")
+                continue
+            if future_date > parking_reservation_range_max:
+                logging.info(f"Date {day.isoformat()} is out of parking range. Ending loop")
+                break
+
+            try:
+                order_parking(
+                    order_date=day.isoformat(),
+                    city=city,
+                    parking=parking,
+                    auth_token=auth_token,
+                )
+            except OrderException as ex:
+                logging.warning(f"Unable to order parking : {repr(ex)}")
+                continue
+        else:
+            logging.info(f"No need to order a parking for {day.isoformat()}")
