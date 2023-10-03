@@ -52,6 +52,7 @@ def get_workspace_availabilities(
     if target_date is None:
         target_date = rfc3339(datetime.now(BUILDING_TIMEZONE.get("tz")) + timedelta(days=1))
 
+    workspace_names = []
     for floor in building_details.get("floors", []):
         params = {
             "buildingId": building_details.get("id"),
@@ -67,16 +68,18 @@ def get_workspace_availabilities(
             params=params,
             auth_token=auth_token,
         )
+        workspace_names.extend([wks.get("workspace", {}).get("title", "NO_NAME") for wks in floor_details])
         for workspace in floor_details:
             if workspace.get("workspace", {}).get("title", "") == name:
                 workspace_details = workspace
                 break
         if workspace_details is not None:
             break
+        
 
     if workspace_details is None:
-        workspaces = [workspace.get("workspace", {}).get("title", "NO_NAME") for workspace in floor_details]
-        raise ItemNotFoundException(f"Workspace {name} not found", available_items=workspaces)
+        # failed to find workspace
+        raise ItemNotFoundException(f"Workspace {name} not found", available_items=workspace_names)
 
     return workspace_details
 
